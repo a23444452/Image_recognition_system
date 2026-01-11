@@ -9,6 +9,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import logging
+import os
+from redis import Redis
+
+from models.database import init_database
+from routers import training
 
 # 配置日誌
 logging.basicConfig(
@@ -27,20 +32,40 @@ async def lifespan(app: FastAPI):
     """
     logger.info("🚀 啟動應用程式...")
 
-    # TODO: 預載入 YOLO 模型
+    # 初始化資料庫
+    try:
+        init_database()
+        logger.info("✅ 資料庫初始化完成")
+    except Exception as e:
+        logger.error(f"❌ 資料庫初始化失敗: {e}")
+        raise
+
+    # 檢查 Redis 連線
+    try:
+        redis_host = os.getenv('REDIS_HOST', 'localhost')
+        redis_port = int(os.getenv('REDIS_PORT', 6379))
+        redis_conn = Redis(host=redis_host, port=redis_port)
+        redis_conn.ping()
+        logger.info(f"✅ Redis 連線成功: {redis_host}:{redis_port}")
+    except Exception as e:
+        logger.warning(f"⚠️  Redis 連線失敗: {e}")
+        logger.warning("⚠️  訓練功能將無法使用，請確認 Redis 服務運行中")
+
+    # TODO: 預載入 YOLO 模型（Phase 2）
     # app.state.detection_model = YOLO("models/best.pt")
-
-    # TODO: 初始化資料庫
-    # await init_database()
-
-    # TODO: 檢查 Redis 連線
-    # await check_redis_connection()
 
     logger.info("✅ 應用程式啟動完成")
     yield
 
     logger.info("🛑 關閉應用程式...")
-    # TODO: 清理資源
+    # 清理資源
+    try:
+        if 'redis_conn' in locals():
+            redis_conn.close()
+            logger.info("✅ Redis 連線已關閉")
+    except Exception as e:
+        logger.error(f"清理資源時出錯: {e}")
+
     logger.info("✅ 資源清理完成")
 
 
@@ -89,9 +114,11 @@ async def health_check():
     }
 
 
-# TODO: 註冊 Routers
-# from routers import training, datasets, models, streaming
-# app.include_router(training.router, prefix="/api/v1/training", tags=["Training"])
+# 註冊 Routers
+app.include_router(training.router, prefix="/api/v1/training", tags=["Training"])
+
+# TODO: Phase 2 - 註冊其他 Routers
+# from routers import datasets, models, streaming
 # app.include_router(datasets.router, prefix="/api/v1/datasets", tags=["Datasets"])
 # app.include_router(models.router, prefix="/api/v1/models", tags=["Models"])
 # app.include_router(streaming.router, prefix="/api/v1/streaming", tags=["Streaming"])
