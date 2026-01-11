@@ -147,7 +147,7 @@ cd backend
 source venv/bin/activate  # macOS/Linux
 # venv\Scripts\activate   # Windows
 
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --reload-exclude 'venv/*' --host 0.0.0.0 --port 8000
 ```
 
 **預期輸出**：
@@ -554,7 +554,7 @@ kill -9 <PID>
 
 # 或使用不同端口
 # 後端
-uvicorn main:app --reload --host 0.0.0.0 --port 8001
+uvicorn main:app --reload --reload-exclude 'venv/*' --host 0.0.0.0 --port 8001
 
 # 前端（修改 vite.config.js）
 # server: { port: 5174 }
@@ -611,7 +611,7 @@ print("✅ 資料庫重建完成")
 EOF
 
 # 或啟動 FastAPI 會自動初始化
-uvicorn main:app --reload
+uvicorn main:app --reload --reload-exclude 'venv/*'
 ```
 
 ## 📚 下一步

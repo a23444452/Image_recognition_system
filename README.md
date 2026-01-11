@@ -261,7 +261,8 @@ rq worker training
 # 7. 啟動 FastAPI (新開終端)
 cd backend
 source venv/bin/activate
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --reload-exclude 'venv/*' --host 0.0.0.0 --port 8000
+# 或直接使用: python main.py
 ```
 
 #### 疑難排解
