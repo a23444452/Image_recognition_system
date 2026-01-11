@@ -26,6 +26,8 @@ class StreamingUpdateConfig(BaseModel):
 
 class StreamingStatus(BaseModel):
     """串流狀態"""
+    model_config = {"protected_namespaces": ()}
+
     is_streaming: bool = Field(..., description="是否正在串流")
     camera_id: int = Field(..., description="攝影機 ID")
     model_loaded: bool = Field(..., description="模型是否已載入")
