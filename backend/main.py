@@ -13,7 +13,7 @@ import os
 from redis import Redis
 
 from models.database import init_database
-from routers import training
+from routers import training, websocket
 
 # 配置日誌
 logging.basicConfig(
@@ -116,6 +116,7 @@ async def health_check():
 
 # 註冊 Routers
 app.include_router(training.router, prefix="/api/v1/training", tags=["Training"])
+app.include_router(websocket.router, prefix="/ws", tags=["WebSocket"])
 
 # TODO: Phase 2 - 註冊其他 Routers
 # from routers import datasets, models, streaming

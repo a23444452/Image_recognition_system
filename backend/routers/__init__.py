@@ -1,5 +1,5 @@
 """API Routers"""
 
-from . import training
+from . import training, websocket
 
-__all__ = ['training']
+__all__ = ['training', 'websocket']

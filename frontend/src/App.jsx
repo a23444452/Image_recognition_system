@@ -1,50 +1,51 @@
-import { useState } from 'react'
-import './App.css'
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import './App.css';
+import TrainingPage from './pages/TrainingPage';
 
-function App() {
-  const [apiStatus, setApiStatus] = useState('檢查中...')
+// 首頁組件
+function HomePage() {
+  const [apiStatus, setApiStatus] = useState('檢查中...');
 
   // 檢查後端 API 連線
   const checkAPI = async () => {
     try {
-      const response = await fetch('/api/')
-      const data = await response.json()
-      setApiStatus(`✅ ${data.message}`)
+      const response = await fetch('http://localhost:8000/');
+      const data = await response.json();
+      setApiStatus(`✅ ${data.message}`);
     } catch (error) {
-      setApiStatus('❌ 無法連接後端 API')
+      setApiStatus('❌ 無法連接後端 API');
     }
-  }
+  };
 
   // 組件掛載時檢查 API
-  useState(() => {
-    checkAPI()
-  }, [])
+  useEffect(() => {
+    checkAPI();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto text-center">
           {/* Header */}
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-5xl font-bold text-gray-900 mb-4">
             🎯 YOLO 全端影像辨識系統
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+          <p className="text-xl text-gray-600 mb-8">
             基於專家會議共識開發的完整物件偵測系統
           </p>
 
           {/* Status Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">
-              系統狀態
-            </h2>
+          <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">系統狀態</h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                <span className="text-gray-700 dark:text-gray-200">前端狀態</span>
-                <span className="text-green-600 dark:text-green-400 font-semibold">✅ 運行中</span>
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded">
+                <span className="text-gray-700">前端狀態</span>
+                <span className="text-green-600 font-semibold">✅ 運行中</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                <span className="text-gray-700 dark:text-gray-200">後端 API</span>
-                <span className="text-gray-700 dark:text-gray-200 font-semibold">{apiStatus}</span>
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded">
+                <span className="text-gray-700">後端 API</span>
+                <span className="text-gray-700 font-semibold">{apiStatus}</span>
               </div>
             </div>
           </div>
@@ -52,47 +53,125 @@ function App() {
           {/* Features Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {[
-              { icon: '🏋️', title: '模型訓練', desc: '支援 YOLOv5/v8/v11 訓練' },
-              { icon: '📹', title: '即時偵測', desc: 'WebSocket 串流偵測' },
-              { icon: '📁', title: '資料集管理', desc: '上傳與預處理資料集' },
-              { icon: '🤖', title: '模型管理', desc: '切換與管理訓練模型' },
-              { icon: '📊', title: '訓練監控', desc: '即時查看訓練進度' },
-              { icon: '⚡', title: '效能優化', desc: 'ProcessPoolExecutor 加速' },
+              {
+                icon: '🏋️',
+                title: '模型訓練',
+                desc: '支援 YOLOv5/v8/v11 訓練',
+                link: '/training',
+              },
+              { icon: '📹', title: '即時偵測', desc: 'WebSocket 串流偵測', link: null },
+              { icon: '📁', title: '資料集管理', desc: '上傳與預處理資料集', link: null },
+              { icon: '🤖', title: '模型管理', desc: '切換與管理訓練模型', link: null },
+              { icon: '📊', title: '訓練監控', desc: '即時查看訓練進度', link: '/training' },
+              { icon: '⚡', title: '效能優化', desc: 'ProcessPoolExecutor 加速', link: null },
             ].map((feature, index) => (
-              <div
+              <Link
                 key={index}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-xl transition-shadow"
+                to={feature.link || '#'}
+                className={`bg-white rounded-lg shadow p-6 hover:shadow-xl transition-all ${
+                  feature.link
+                    ? 'cursor-pointer hover:scale-105'
+                    : 'opacity-60 cursor-not-allowed'
+                }`}
+                onClick={(e) => !feature.link && e.preventDefault()}
               >
                 <div className="text-4xl mb-3">{feature.icon}</div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  {feature.desc}
-                </p>
-              </div>
+                <p className="text-gray-600 text-sm">{feature.desc}</p>
+                {feature.link && (
+                  <p className="text-blue-600 text-xs mt-2 font-medium">點擊開始 →</p>
+                )}
+                {!feature.link && (
+                  <p className="text-gray-400 text-xs mt-2">開發中...</p>
+                )}
+              </Link>
             ))}
           </div>
 
           {/* CTA */}
-          <div className="bg-primary/10 dark:bg-primary/20 rounded-lg p-8">
-            <h3 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">
-              開發中... 🚧
+          <div className="bg-blue-50 rounded-lg p-8">
+            <h3 className="text-2xl font-semibold mb-4 text-gray-800">
+              Phase 1B 已完成 🎉
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              系統架構已建立完成，功能模組正在開發中
+            <p className="text-gray-600 mb-4">
+              訓練系統已上線！您可以開始配置並啟動 YOLO 模型訓練
             </p>
-            <button
-              onClick={checkAPI}
-              className="bg-primary hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-            >
-              重新檢查 API 連線
-            </button>
+            <div className="flex justify-center space-x-4">
+              <Link
+                to="/training"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              >
+                開始訓練 →
+              </Link>
+              <button
+                onClick={checkAPI}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              >
+                重新檢查 API
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+// 導航欄組件
+function Navbar() {
+  const location = useLocation();
+
+  return (
+    <nav className="bg-white shadow-md">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          <Link to="/" className="text-xl font-bold text-gray-800">
+            🎯 YOLO System
+          </Link>
+
+          <div className="flex space-x-4">
+            <Link
+              to="/"
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === '/'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              首頁
+            </Link>
+            <Link
+              to="/training"
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === '/training'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              訓練
+            </Link>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// 主 App 組件
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/training" element={<TrainingPage />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
