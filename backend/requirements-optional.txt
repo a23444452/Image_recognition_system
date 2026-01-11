@@ -1,0 +1,18 @@
+# 可選的效能優化套件
+# 這些套件可能在某些平台上需要從源碼編譯
+
+# Pillow SIMD 優化版本（約 4-6x 效能提升）
+# 注意：在某些平台上可能需要額外的編譯工具
+# macOS: 可能在 Apple Silicon 上安裝失敗
+# Linux: 需要 gcc, libjpeg-dev, zlib1g-dev
+
+# 安裝方式 1: 嘗試安裝預編譯版本
+# pip install pillow-simd
+
+# 安裝方式 2: 從源碼編譯（如果方式 1 失敗）
+# pip uninstall pillow
+# pip install pillow-simd --no-binary :all:
+
+# 其他可選優化
+# Nvidia GPU 加速（如果有 CUDA GPU）
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118

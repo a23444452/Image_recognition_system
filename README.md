@@ -135,17 +135,59 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# 2. 安裝依賴
+# 2. 升級 pip
+pip install --upgrade pip
+
+# 3. 安裝依賴
 pip install -r requirements.txt
 
-# 3. 啟動 Redis (需先安裝 Redis)
+# 4. (可選) 安裝效能優化套件
+# pillow-simd 提供 4-6x 圖片處理效能提升
+# 注意：在某些平台上可能需要編譯工具
+pip install pillow-simd  # 如果安裝失敗，標準 Pillow 已足夠使用
+
+# 5. 啟動 Redis (需先安裝 Redis)
+# macOS: brew install redis && brew services start redis
+# Ubuntu: sudo apt install redis-server && sudo systemctl start redis
 redis-server
 
-# 4. 啟動 RQ Worker
+# 6. 啟動 RQ Worker (新開終端)
+cd backend
+source venv/bin/activate
 rq worker training
 
-# 5. 啟動 FastAPI
+# 7. 啟動 FastAPI (新開終端)
+cd backend
+source venv/bin/activate
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### 疑難排解
+
+**問題 1**: `pillow-simd` 安裝失敗
+```bash
+# 解決方案：使用標準 Pillow（已在 requirements.txt 中）
+# pillow-simd 是效能優化版本，但標準版本功能完全相同
+```
+
+**問題 2**: Redis 連線失敗
+```bash
+# 檢查 Redis 是否運行
+redis-cli ping  # 應該返回 PONG
+
+# 如果沒有安裝 Redis：
+# macOS: brew install redis
+# Ubuntu: sudo apt install redis-server
+# Windows: 使用 WSL 或 Docker
+```
+
+**問題 3**: PyTorch/CUDA 問題
+```bash
+# CPU 版本（預設）
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# GPU 版本（如果有 NVIDIA GPU）
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 ```
 
 ### 前端設定

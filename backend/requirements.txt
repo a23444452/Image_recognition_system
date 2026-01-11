@@ -13,7 +13,7 @@ ultralytics>=8.0.0
 torch>=2.0.0
 torchvision>=0.15.0
 opencv-python==4.8.1.78
-pillow-simd==10.0.1.post0  # 效能優化版本
+Pillow>=10.0.0  # 使用標準版本，pillow-simd 可選（見 requirements-optional.txt）
 
 # Data Processing
 numpy<2.0
