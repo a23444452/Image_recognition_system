@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # Redis - 任務隊列
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # PostgreSQL - 資料庫（生產環境用）
+  # db:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_DB: yolo_db
+  #     POSTGRES_USER: yolo_user
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U yolo_user"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 3
+
+  # FastAPI 後端
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///./yolo.db
+    volumes:
+      - ./backend:/app
+      - ./models:/app/models
+      - ./datasets:/app/datasets
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # RQ Worker - 訓練任務執行
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./models:/app/models
+      - ./datasets:/app/datasets
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: rq worker training --url redis://redis:6379/0
+    deploy:
+      replicas: 2  # 可根據需求調整 worker 數量
+
+  # React 前端
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev
+
+volumes:
+  redis_data:
+  # postgres_data:  # 生產環境使用
