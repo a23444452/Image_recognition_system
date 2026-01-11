@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import './App.css';
 import TrainingPage from './pages/TrainingPage';
+import DatasetsPage from './pages/DatasetsPage';
+import ModelsPage from './pages/ModelsPage';
 
 // 首頁組件
 function HomePage() {
@@ -60,8 +62,8 @@ function HomePage() {
                 link: '/training',
               },
               { icon: '📹', title: '即時偵測', desc: 'WebSocket 串流偵測', link: null },
-              { icon: '📁', title: '資料集管理', desc: '上傳與預處理資料集', link: null },
-              { icon: '🤖', title: '模型管理', desc: '切換與管理訓練模型', link: null },
+              { icon: '📁', title: '資料集管理', desc: '上傳與預處理資料集', link: '/datasets' },
+              { icon: '🤖', title: '模型管理', desc: '切換與管理訓練模型', link: '/models' },
               { icon: '📊', title: '訓練監控', desc: '即時查看訓練進度', link: '/training' },
               { icon: '⚡', title: '效能優化', desc: 'ProcessPoolExecutor 加速', link: null },
             ].map((feature, index) => (
@@ -93,24 +95,30 @@ function HomePage() {
           {/* CTA */}
           <div className="bg-blue-50 rounded-lg p-8">
             <h3 className="text-2xl font-semibold mb-4 text-gray-800">
-              Phase 1B 已完成 🎉
+              Phase 2 開發中 🚀
             </h3>
             <p className="text-gray-600 mb-4">
-              訓練系統已上線！您可以開始配置並啟動 YOLO 模型訓練
+              完整的訓練、資料集與模型管理系統已上線！開始建立您的 YOLO 工作流程
             </p>
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-3">
+              <Link
+                to="/datasets"
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              >
+                資料集管理 →
+              </Link>
               <Link
                 to="/training"
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
                 開始訓練 →
               </Link>
-              <button
-                onClick={checkAPI}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              <Link
+                to="/models"
+                className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
-                重新檢查 API
-              </button>
+                模型管理 →
+              </Link>
             </div>
           </div>
         </div>
@@ -152,6 +160,26 @@ function Navbar() {
             >
               訓練
             </Link>
+            <Link
+              to="/datasets"
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === '/datasets'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              資料集
+            </Link>
+            <Link
+              to="/models"
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === '/models'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              模型
+            </Link>
           </div>
         </div>
       </div>
@@ -168,6 +196,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/training" element={<TrainingPage />} />
+          <Route path="/datasets" element={<DatasetsPage />} />
+          <Route path="/models" element={<ModelsPage />} />
         </Routes>
       </div>
     </Router>
