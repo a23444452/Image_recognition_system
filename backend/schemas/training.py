@@ -73,3 +73,26 @@ class TrainingTask(BaseModel):
     progress: Optional[TrainingProgress] = None
     error_message: Optional[str] = None
     model_path: Optional[str] = None
+
+
+class TrainingTaskResponse(BaseModel):
+    """訓練任務 API 回應"""
+    id: str
+    task_name: Optional[str] = None
+    model_type: str
+    model_size: str
+    dataset_id: str
+    status: str
+    config: Dict[str, Any]
+    created_at: str
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    error_message: Optional[str] = None
+    progress: Optional[int] = None
+    current_epoch: Optional[int] = None
+    total_epochs: Optional[int] = None
+    best_map: Optional[float] = None
+    model_path: Optional[str] = None
+
+    class Config:
+        from_attributes = True
