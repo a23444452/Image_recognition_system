@@ -108,7 +108,10 @@ Image_recognition_system/
 │   ├── package.json
 │   └── vite.config.js
 ├── config/                    # 配置檔案
-├── scripts/                   # 輔助腳本
+├── scripts/                   # 自動化腳本
+│   ├── setup.sh              # 一鍵安裝依賴
+│   ├── start.sh              # 一鍵啟動所有服務
+│   └── stop.sh               # 一鍵停止所有服務
 ├── docs/                      # 文檔
 ├── .github/                   # CI/CD 配置
 │   └── workflows/
@@ -127,7 +130,106 @@ Image_recognition_system/
 - 8GB+ RAM
 - GPU (選用，用於加速訓練)
 
-### 後端設定
+### 方法一：使用自動化腳本（推薦）⭐
+
+專案提供了自動化腳本，一鍵完成環境設定與服務啟動。
+
+#### 1️⃣ 安裝所有依賴
+
+```bash
+# 執行自動化安裝腳本
+./scripts/setup.sh
+```
+
+**腳本會自動完成：**
+- ✅ 檢查 Python 3、Node.js、Redis 是否已安裝
+- ✅ 建立後端虛擬環境
+- ✅ 安裝後端依賴（requirements.txt）
+- ✅ 安裝前端依賴（npm install）
+- ✅ 建立環境變數檔案（.env）
+- ✅ 建立必要目錄（models, datasets, logs）
+
+**預期輸出：**
+```
+🚀 初始化 YOLO 全端影像辨識系統...
+✅ Python 3 已安裝
+✅ Node.js 已安裝
+📦 設定後端環境...
+✅ 後端依賴安裝完成
+📦 設定前端環境...
+✅ 前端依賴安裝完成
+✅ 專案初始化完成！
+```
+
+#### 2️⃣ 啟動所有服務
+
+```bash
+# 一鍵啟動所有服務（Redis + 後端 + 前端）
+./scripts/start.sh
+```
+
+**腳本會自動：**
+- ✅ 檢查並啟動 Redis（如未運行）
+- ✅ 啟動後端 API（http://localhost:8000）
+- ✅ 啟動前端開發伺服器（http://localhost:5173）
+
+**預期輸出：**
+```
+🚀 啟動 YOLO 全端影像辨識系統...
+✅ Redis 運行中
+🔧 啟動後端 API...
+✅ 後端 API 已啟動 (PID: 12345)
+🎨 啟動前端...
+✅ 前端已啟動 (PID: 12346)
+
+✅ 所有服務已啟動！
+
+🌐 前端: http://localhost:5173
+🔌 後端 API: http://localhost:8000
+📚 API 文檔: http://localhost:8000/docs
+
+⏹️  停止服務: ./scripts/stop.sh
+   或按 Ctrl+C
+```
+
+#### 3️⃣ 停止所有服務
+
+```bash
+# 停止所有運行中的服務
+./scripts/stop.sh
+```
+
+**腳本會停止：**
+- 後端 API (uvicorn)
+- 前端開發伺服器 (vite)
+- RQ Worker (如有運行)
+
+**預期輸出：**
+```
+🛑 停止所有服務...
+✅ 後端已停止
+✅ 前端已停止
+✅ RQ Worker 已停止
+✅ 清理完成
+```
+
+#### 4️⃣ 啟動 RQ Worker（訓練任務處理）
+
+如果需要使用訓練功能，需要額外啟動 RQ Worker：
+
+```bash
+cd backend
+source venv/bin/activate
+rq worker training
+```
+
+---
+
+### 方法二：手動安裝
+
+如果需要更精細的控制，可以選擇手動安裝。
+
+#### 後端設定
 
 ```bash
 # 1. 建立虛擬環境
