@@ -64,6 +64,8 @@ class TrainingProgress(BaseModel):
 
 class TrainingTask(BaseModel):
     """訓練任務完整資訊"""
+    model_config = {"protected_namespaces": ()}
+
     id: str
     config: TrainingConfig
     status: TrainingStatus
@@ -77,6 +79,8 @@ class TrainingTask(BaseModel):
 
 class TrainingTaskResponse(BaseModel):
     """訓練任務 API 回應"""
+    model_config = {"protected_namespaces": (), "from_attributes": True}
+
     id: str
     task_name: Optional[str] = None
     model_type: str
@@ -93,6 +97,3 @@ class TrainingTaskResponse(BaseModel):
     total_epochs: Optional[int] = None
     best_map: Optional[float] = None
     model_path: Optional[str] = None
-
-    class Config:
-        from_attributes = True

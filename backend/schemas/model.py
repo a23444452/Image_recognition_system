@@ -10,7 +10,7 @@ from datetime import datetime
 class ModelCreate(BaseModel):
     """創建模型請求"""
     name: str = Field(..., min_length=1, max_length=255, description="模型名稱")
-    yolo_version: str = Field(..., regex="^(v5|v8|v11)$", description="YOLO 版本")
+    yolo_version: str = Field(..., pattern="^(v5|v8|v11)$", description="YOLO 版本")
     file_path: str = Field(..., description="模型檔案路徑")
     description: Optional[str] = Field(None, max_length=1000, description="模型描述")
     training_task_id: Optional[str] = Field(None, description="訓練任務 ID")
@@ -68,6 +68,8 @@ class ModelComparisonItem(BaseModel):
 
 class ModelComparisonRequest(BaseModel):
     """模型比較請求"""
+    model_config = {"protected_namespaces": ()}
+
     model_ids: List[str] = Field(..., min_items=2, max_items=10, description="模型 ID 列表")
 
 
@@ -79,6 +81,8 @@ class ModelComparisonResponse(BaseModel):
 
 class ModelStatistics(BaseModel):
     """模型統計資訊"""
+    model_config = {"protected_namespaces": ()}
+
     total: int = Field(..., description="總模型數")
     by_version: Dict[str, int] = Field(..., description="各版本模型數")
     active_model_id: Optional[str] = Field(None, description="當前啟用模型 ID")

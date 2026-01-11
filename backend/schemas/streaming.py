@@ -8,6 +8,8 @@ from typing import Optional, List
 
 class StreamingConfig(BaseModel):
     """串流配置"""
+    model_config = {"protected_namespaces": ()}
+
     camera_id: int = Field(0, ge=0, description="攝影機 ID")
     model_path: str = Field(..., description="模型檔案路徑")
     conf_threshold: float = Field(0.25, ge=0.0, le=1.0, description="信心度閾值")
