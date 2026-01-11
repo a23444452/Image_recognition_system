@@ -4,6 +4,7 @@ import './App.css';
 import TrainingPage from './pages/TrainingPage';
 import DatasetsPage from './pages/DatasetsPage';
 import ModelsPage from './pages/ModelsPage';
+import StreamingPage from './pages/StreamingPage';
 
 // 首頁組件
 function HomePage() {
@@ -61,7 +62,7 @@ function HomePage() {
                 desc: '支援 YOLOv5/v8/v11 訓練',
                 link: '/training',
               },
-              { icon: '📹', title: '即時偵測', desc: 'WebSocket 串流偵測', link: null },
+              { icon: '📹', title: '即時偵測', desc: 'WebSocket 串流偵測', link: '/streaming' },
               { icon: '📁', title: '資料集管理', desc: '上傳與預處理資料集', link: '/datasets' },
               { icon: '🤖', title: '模型管理', desc: '切換與管理訓練模型', link: '/models' },
               { icon: '📊', title: '訓練監控', desc: '即時查看訓練進度', link: '/training' },
@@ -95,12 +96,12 @@ function HomePage() {
           {/* CTA */}
           <div className="bg-blue-50 rounded-lg p-8">
             <h3 className="text-2xl font-semibold mb-4 text-gray-800">
-              Phase 2 開發中 🚀
+              Phase 2C 完成 🎉
             </h3>
             <p className="text-gray-600 mb-4">
-              完整的訓練、資料集與模型管理系統已上線！開始建立您的 YOLO 工作流程
+              完整的訓練、資料集、模型管理與即時串流偵測系統已上線！開始建立您的 YOLO 工作流程
             </p>
-            <div className="flex justify-center space-x-3">
+            <div className="flex justify-center space-x-3 flex-wrap gap-2">
               <Link
                 to="/datasets"
                 className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
@@ -118,6 +119,12 @@ function HomePage() {
                 className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
                 模型管理 →
+              </Link>
+              <Link
+                to="/streaming"
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              >
+                即時偵測 →
               </Link>
             </div>
           </div>
@@ -180,6 +187,16 @@ function Navbar() {
             >
               模型
             </Link>
+            <Link
+              to="/streaming"
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === '/streaming'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              串流
+            </Link>
           </div>
         </div>
       </div>
@@ -198,6 +215,7 @@ function App() {
           <Route path="/training" element={<TrainingPage />} />
           <Route path="/datasets" element={<DatasetsPage />} />
           <Route path="/models" element={<ModelsPage />} />
+          <Route path="/streaming" element={<StreamingPage />} />
         </Routes>
       </div>
     </Router>
