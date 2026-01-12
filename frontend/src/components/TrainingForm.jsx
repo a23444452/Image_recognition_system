@@ -137,9 +137,7 @@ export default function TrainingForm({ onSubmit, onCancel }) {
       if (!formData.data_yaml.trim()) {
         newErrors.data_yaml = 'Data YAML 路徑不可為空';
       }
-      if (!formData.class_names.trim()) {
-        newErrors.class_names = '類別名稱不可為空';
-      }
+      // class_names 為可選欄位，因為訓練主要依賴 data.yaml
     }
 
     setErrors(newErrors);
@@ -479,7 +477,7 @@ export default function TrainingForm({ onSubmit, onCancel }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                類別名稱 * (逗號分隔)
+                類別名稱 (逗號分隔，可選)
               </label>
               <input
                 type="text"
@@ -494,6 +492,11 @@ export default function TrainingForm({ onSubmit, onCancel }) {
               />
               {errors.class_names && (
                 <p className="mt-1 text-sm text-red-600">{errors.class_names}</p>
+              )}
+              {!formData.class_names && formData.dataset_id && (
+                <p className="mt-1 text-sm text-gray-500">
+                  💡 類別資訊將從 data.yaml 讀取
+                </p>
               )}
             </div>
           </div>
