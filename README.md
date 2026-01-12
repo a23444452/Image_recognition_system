@@ -2,6 +2,12 @@
 
 基於會議共識開發的完整 YOLO 物件偵測系統，整合訓練、推論與即時串流功能。
 
+## 📚 文檔
+
+- 📖 [**系統架構文檔 (ARCHITECTURE.md)**](./ARCHITECTURE.md) - 完整的系統架構設計、技術棧、資料流程與設計決策
+- 🛠️ [**開發指南 (DEVELOPMENT.md)**](./DEVELOPMENT.md) - 開發環境設定、編碼規範、測試指南與除錯技巧
+- 🚀 [**部署指南 (DEPLOYMENT.md)**](./DEPLOYMENT.md) - Docker 部署、雲端平台部署、監控與備份策略
+
 ## 🎯 專案目標
 
 整合兩個獨立專案的優勢：
