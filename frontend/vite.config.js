@@ -5,14 +5,15 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true, // 允許從容器外部訪問
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://backend:8000', // Docker Compose 內部網路使用服務名稱
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://localhost:8000',
+        target: 'ws://backend:8000', // Docker Compose 內部網路使用服務名稱
         ws: true,
       }
     }
