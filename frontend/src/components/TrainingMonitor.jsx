@@ -52,7 +52,7 @@ export default function TrainingMonitor({ taskId, onClose }) {
         const newData = {
           epoch: data.current_epoch,
           loss: data.current_loss || 0,
-          map: data.current_map || 0,
+          map: data.current_map ? (data.current_map * 100) : 0,  // 轉換為百分比 (0-100)
         };
 
         // 檢查是否已存在該 epoch
@@ -121,8 +121,8 @@ export default function TrainingMonitor({ taskId, onClose }) {
           progress: data.progress || 0,
           current_epoch: data.current_epoch || 0,
           total_epochs: data.total_epochs || 0,
-          current_loss: data.config?.current_loss,
-          current_map: data.best_map
+          current_loss: data.current_loss,
+          current_map: data.current_map
         });
 
         // 如果任務已完成或失敗，停止輪詢
@@ -306,10 +306,23 @@ export default function TrainingMonitor({ taskId, onClose }) {
                 dataKey="epoch"
                 label={{ value: 'Epoch', position: 'insideBottom', offset: -5 }}
               />
-              <YAxis />
+              {/* 左側 Y 軸：Loss */}
+              <YAxis
+                yAxisId="left"
+                domain={[0, 'auto']}
+                label={{ value: 'Loss', angle: -90, position: 'insideLeft' }}
+              />
+              {/* 右側 Y 軸：mAP% */}
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                domain={[0, 100]}
+                label={{ value: 'mAP (%)', angle: 90, position: 'insideRight' }}
+              />
               <Tooltip />
               <Legend />
               <Line
+                yAxisId="left"
                 type="monotone"
                 dataKey="loss"
                 stroke="#3B82F6"
@@ -319,10 +332,11 @@ export default function TrainingMonitor({ taskId, onClose }) {
                 activeDot={{ r: 5 }}
               />
               <Line
+                yAxisId="right"
                 type="monotone"
                 dataKey="map"
                 stroke="#10B981"
-                name="mAP"
+                name="mAP (%)"
                 strokeWidth={2}
                 dot={{ r: 3 }}
                 activeDot={{ r: 5 }}

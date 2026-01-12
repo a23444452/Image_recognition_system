@@ -77,7 +77,9 @@ class TrainingTask(Base):
             "progress": progress_percent,  # 轉為百分比整數
             "current_epoch": self.current_epoch,
             "total_epochs": self.total_epochs,
-            "best_map": self.current_map,  # 映射到 best_map
+            "current_loss": self.current_loss,  # 當前 Loss 值
+            "current_map": self.current_map,  # 當前 mAP 值
+            "best_map": self.current_map,  # 映射到 best_map (向後相容)
             "model_path": self.model_path,
             "save_dir": self.save_dir,
             "error_message": self.error_message,
