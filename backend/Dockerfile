@@ -2,13 +2,18 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# 安裝系統依賴
-RUN apt-get update && apt-get install -y \
+# 設定非互動模式避免安裝過程中的提示
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 安裝系統依賴（OpenCV 與編譯工具）
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     gcc \
     g++ \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # 複製 requirements
 COPY requirements.txt .

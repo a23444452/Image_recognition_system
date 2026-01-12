@@ -2,8 +2,9 @@ services:
   # Redis - 任務隊列
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # 移除端口映射，僅供容器內部使用
+    # ports:
+    #   - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -39,10 +40,12 @@ services:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - DATABASE_URL=sqlite:///./yolo.db
     volumes:
       - ./backend:/app
-      - ./models:/app/models
+      - ./models:/app/trained_models
       - ./datasets:/app/datasets
     depends_on:
       redis:
@@ -58,7 +61,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
-      - ./models:/app/models
+      - ./models:/app/trained_models
       - ./datasets:/app/datasets
     depends_on:
       redis:
