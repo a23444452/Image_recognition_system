@@ -56,16 +56,16 @@ function HomePage() {
           {/* Features Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {[
+              { icon: '📁', title: '資料集管理', desc: '上傳與預處理資料集', link: '/datasets' },
               {
                 icon: '🏋️',
                 title: '模型訓練',
                 desc: '支援 YOLOv5/v8/v11 訓練',
                 link: '/training',
               },
-              { icon: '📹', title: '即時偵測', desc: 'WebSocket 串流偵測', link: '/streaming' },
-              { icon: '📁', title: '資料集管理', desc: '上傳與預處理資料集', link: '/datasets' },
-              { icon: '🤖', title: '模型管理', desc: '切換與管理訓練模型', link: '/models' },
               { icon: '📊', title: '訓練監控', desc: '即時查看訓練進度', link: '/training' },
+              { icon: '🤖', title: '模型管理', desc: '切換與管理訓練模型', link: '/models' },
+              { icon: '📹', title: '即時偵測', desc: 'WebSocket 串流偵測', link: '/streaming' },
               { icon: '⚡', title: '效能優化', desc: 'ProcessPoolExecutor 加速', link: null },
             ].map((feature, index) => (
               <Link
@@ -106,25 +106,25 @@ function HomePage() {
                 to="/datasets"
                 className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
-                資料集管理 →
+                1️⃣ 資料集管理 →
               </Link>
               <Link
                 to="/training"
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
-                開始訓練 →
+                2️⃣ 模型訓練 →
               </Link>
               <Link
                 to="/models"
                 className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
-                模型管理 →
+                3️⃣ 模型管理 →
               </Link>
               <Link
                 to="/streaming"
                 className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
-                即時偵測 →
+                4️⃣ 即時偵測 →
               </Link>
             </div>
           </div>
@@ -158,16 +158,6 @@ function Navbar() {
               首頁
             </Link>
             <Link
-              to="/training"
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                location.pathname === '/training'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              訓練
-            </Link>
-            <Link
               to="/datasets"
               className={`px-4 py-2 rounded-lg transition-colors ${
                 location.pathname === '/datasets'
@@ -175,7 +165,17 @@ function Navbar() {
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              資料集
+              資料集管理
+            </Link>
+            <Link
+              to="/training"
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                location.pathname === '/training'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              模型訓練
             </Link>
             <Link
               to="/models"
@@ -185,7 +185,7 @@ function Navbar() {
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              模型
+              模型管理
             </Link>
             <Link
               to="/streaming"
@@ -195,7 +195,7 @@ function Navbar() {
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              串流
+              即時偵測
             </Link>
           </div>
         </div>
