@@ -25,6 +25,9 @@ class TrainingStatus(str, Enum):
 
 class TrainingConfig(BaseModel):
     """訓練配置"""
+    # 基本設定
+    project_name: Optional[str] = Field("yolo_project", description="專案名稱")
+    model_name: Optional[str] = Field("training", description="模型名稱")
     dataset_id: str = Field(..., description="資料集 ID")
     yolo_version: YOLOVersion = Field(YOLOVersion.V11, description="YOLO 版本")
     epochs: int = Field(100, ge=10, le=300, description="訓練輪數")
