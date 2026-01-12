@@ -50,6 +50,23 @@ class TrainingService:
         # 生成任務 ID
         task_id = str(uuid.uuid4())
 
+        # 從 dataset_id 查詢 yaml_path
+        dataset_id = config.get('dataset_id')
+        if not dataset_id:
+            raise ValueError("訓練配置缺少 dataset_id")
+
+        from models.training import Dataset
+        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+        if not dataset:
+            raise ValueError(f"資料集不存在: {dataset_id}")
+
+        if not dataset.yaml_path:
+            raise ValueError(f"資料集 {dataset_id} 缺少 yaml_path")
+
+        # 將 yaml_path 加入到 config 中（供 YOLO trainer 使用）
+        config_with_yaml = config.copy()
+        config_with_yaml['data_yaml'] = dataset.yaml_path
+
         # 創建資料庫記錄
         task = TrainingTask(
             id=task_id,
@@ -57,7 +74,7 @@ class TrainingService:
             model_name=config.get('model_name', 'training'),
             yolo_version=config.get('yolo_version', 'v11'),
             status=TrainingStatus.PENDING,
-            config=config,
+            config=config_with_yaml,  # 使用包含 data_yaml 的配置
             total_epochs=config.get('epochs', 100)
         )
 
@@ -72,7 +89,7 @@ class TrainingService:
             job = self.queue.enqueue(
                 run_training,
                 task_id=task_id,
-                config=config,
+                config=config_with_yaml,  # 傳遞包含 data_yaml 的配置
                 job_timeout='24h',  # 24 小時超時
                 result_ttl=86400,   # 結果保留 1 天
                 failure_ttl=86400   # 失敗訊息保留 1 天

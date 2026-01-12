@@ -56,20 +56,28 @@ class TrainingTask(Base):
 
     def to_dict(self):
         """轉換為字典"""
+        # 從 config 中提取 dataset_id（如果存在）
+        dataset_id = self.config.get('dataset_id', '') if self.config else ''
+
+        # 計算進度百分比
+        progress_percent = 0
+        if self.total_epochs and self.total_epochs > 0:
+            progress_percent = int((self.current_epoch / self.total_epochs) * 100)
+
         return {
             "id": self.id,
-            "project_name": self.project_name,
-            "model_name": self.model_name,
+            "task_name": self.project_name,  # 映射到 task_name
+            "model_type": self.yolo_version,  # 映射到 model_type
+            "model_size": "n",  # 預設使用 n (nano) 模型
+            "dataset_id": dataset_id,  # 從 config 提取
             "yolo_version": self.yolo_version,
             "status": self.status.value if isinstance(self.status, TrainingStatus) else self.status,
             "job_id": self.job_id,
             "config": self.config,
-            "progress": {
-                "current_epoch": self.current_epoch,
-                "total_epochs": self.total_epochs,
-                "current_loss": self.current_loss,
-                "current_map": self.current_map,
-            },
+            "progress": progress_percent,  # 轉為百分比整數
+            "current_epoch": self.current_epoch,
+            "total_epochs": self.total_epochs,
+            "best_map": self.current_map,  # 映射到 best_map
             "model_path": self.model_path,
             "save_dir": self.save_dir,
             "error_message": self.error_message,
@@ -91,6 +99,7 @@ class Dataset(Base):
     path = Column(String, nullable=False)
     train_path = Column(String, nullable=False)
     val_path = Column(String, nullable=False)
+    yaml_path = Column(String, nullable=True)  # data.yaml 檔案路徑
 
     # 統計資訊
     total_images = Column(Integer, default=0)
@@ -111,6 +120,7 @@ class Dataset(Base):
             "path": self.path,
             "train_path": self.train_path,
             "val_path": self.val_path,
+            "yaml_path": self.yaml_path,
             "stats": {
                 "total_images": self.total_images,
                 "total_labels": self.total_labels,

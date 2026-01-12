@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * 訓練配置表單
@@ -18,6 +18,7 @@ export default function TrainingForm({ onSubmit, onCancel }) {
     img_size: 640,
 
     // 資料集
+    dataset_id: '',
     data_yaml: '',
     train_path: '',
     val_path: '',
@@ -38,10 +39,62 @@ export default function TrainingForm({ onSubmit, onCancel }) {
     mosaic: 1.0,
   });
 
+  const [datasets, setDatasets] = useState([]);
+  const [loadingDatasets, setLoadingDatasets] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // 載入資料集列表
+  useEffect(() => {
+    fetchDatasets();
+  }, []);
+
+  const fetchDatasets = async () => {
+    setLoadingDatasets(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/datasets');
+      if (response.ok) {
+        const data = await response.json();
+        setDatasets(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch datasets:', err);
+    } finally {
+      setLoadingDatasets(false);
+    }
+  };
+
+  const handleDatasetSelect = (datasetId) => {
+    const selected = datasets.find(ds => ds.id === datasetId);
+    if (selected) {
+      const classNames = selected.stats?.class_names?.join(', ') || '';
+      setFormData(prev => ({
+        ...prev,
+        dataset_id: datasetId,
+        data_yaml: selected.yaml_path || '',
+        train_path: selected.train_path || '',
+        val_path: selected.val_path || '',
+        class_names: classNames
+      }));
+
+      // 清除相關欄位的錯誤
+      setErrors(prev => ({
+        ...prev,
+        dataset_id: null,
+        data_yaml: null,
+        class_names: null
+      }));
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // 如果是資料集選擇器，使用特殊處理
+    if (name === 'dataset_id') {
+      handleDatasetSelect(value);
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -78,6 +131,9 @@ export default function TrainingForm({ onSubmit, onCancel }) {
     }
 
     if (currentStep === 3) {
+      if (!formData.dataset_id.trim()) {
+        newErrors.dataset_id = '請選擇資料集';
+      }
       if (!formData.data_yaml.trim()) {
         newErrors.data_yaml = 'Data YAML 路徑不可為空';
       }
@@ -328,6 +384,45 @@ export default function TrainingForm({ onSubmit, onCancel }) {
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">資料集配置</h2>
 
+            {/* 資料集選擇器 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                選擇資料集 *
+              </label>
+              <select
+                name="dataset_id"
+                value={formData.dataset_id}
+                onChange={handleChange}
+                disabled={loadingDatasets}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  errors.dataset_id ? 'border-red-500' : 'border-gray-300'
+                }`}
+              >
+                <option value="">-- 請選擇資料集 --</option>
+                {datasets.map(ds => (
+                  <option key={ds.id} value={ds.id}>
+                    {ds.name} ({ds.stats?.total_images || 0} 張圖片, {ds.stats?.num_classes || 0} 個類別)
+                  </option>
+                ))}
+              </select>
+              {errors.dataset_id && (
+                <p className="mt-1 text-sm text-red-600">{errors.dataset_id}</p>
+              )}
+              {loadingDatasets && (
+                <p className="mt-1 text-sm text-blue-600">載入資料集列表中...</p>
+              )}
+              {!loadingDatasets && datasets.length === 0 && (
+                <p className="mt-1 text-sm text-yellow-600">⚠️ 尚無可用資料集，請先創建資料集</p>
+              )}
+            </div>
+
+            {/* 分隔線 */}
+            {formData.dataset_id && (
+              <div className="border-t pt-4">
+                <p className="text-sm text-gray-600 mb-3">📝 以下路徑已自動填充，可視需要修改</p>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Data YAML 路徑 *
@@ -339,8 +434,9 @@ export default function TrainingForm({ onSubmit, onCancel }) {
                 onChange={handleChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   errors.data_yaml ? 'border-red-500' : 'border-gray-300'
-                }`}
+                } ${formData.dataset_id ? 'bg-blue-50' : ''}`}
                 placeholder="/path/to/data.yaml"
+                readOnly={!!formData.dataset_id}
               />
               {errors.data_yaml && (
                 <p className="mt-1 text-sm text-red-600">{errors.data_yaml}</p>
@@ -356,8 +452,11 @@ export default function TrainingForm({ onSubmit, onCancel }) {
                 name="train_path"
                 value={formData.train_path}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  formData.dataset_id ? 'bg-blue-50' : ''
+                }`}
                 placeholder="/path/to/images/train"
+                readOnly={!!formData.dataset_id}
               />
             </div>
 
@@ -370,8 +469,11 @@ export default function TrainingForm({ onSubmit, onCancel }) {
                 name="val_path"
                 value={formData.val_path}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  formData.dataset_id ? 'bg-blue-50' : ''
+                }`}
                 placeholder="/path/to/images/val"
+                readOnly={!!formData.dataset_id}
               />
             </div>
 
@@ -386,8 +488,9 @@ export default function TrainingForm({ onSubmit, onCancel }) {
                 onChange={handleChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   errors.class_names ? 'border-red-500' : 'border-gray-300'
-                }`}
+                } ${formData.dataset_id ? 'bg-blue-50' : ''}`}
                 placeholder="例如：helmet, person, vehicle"
+                readOnly={!!formData.dataset_id}
               />
               {errors.class_names && (
                 <p className="mt-1 text-sm text-red-600">{errors.class_names}</p>

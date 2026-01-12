@@ -25,15 +25,18 @@ logger = logging.getLogger(__name__)
 class DatasetService:
     """資料集服務類別"""
 
-    def __init__(self, base_path: str = "./datasets"):
+    def __init__(self, base_path: str = "./datasets", config_path: str = "./config"):
         """
         初始化資料集服務
 
         Args:
             base_path: 資料集儲存根目錄
+            config_path: 配置檔案輸出目錄
         """
         self.base_path = Path(base_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
+        self.config_path = Path(config_path)
+        self.config_path.mkdir(parents=True, exist_ok=True)
 
     def create_dataset(
         self,
@@ -99,14 +102,38 @@ class DatasetService:
             with open(classes_file, 'r', encoding='utf-8') as f:
                 class_names = [line.strip() for line in f if line.strip()]
 
-        # 創建資料庫記錄
+        # 自動生成 data.yaml 到 config 資料夾
+        yaml_path_abs = None
+        try:
+            yaml_filename = f"{name}_{dataset_id[:8]}.yaml"
+            yaml_output_path = self.config_path / yaml_filename
+
+            class_names_str = ','.join(class_names) if class_names else ''
+
+            # 使用絕對路徑
+            train_path_abs = os.path.abspath(str(dataset_path / 'images' / 'train'))
+            val_path_abs = os.path.abspath(str(dataset_path / 'images' / 'val'))
+
+            yaml_path_abs = create_data_yaml(
+                train_path=train_path_abs,
+                val_path=val_path_abs,
+                class_names_str=class_names_str,
+                output_path=str(yaml_output_path)
+            )
+
+            logger.info(f"✅ 已自動生成 data.yaml: {yaml_path_abs}")
+        except Exception as e:
+            logger.warning(f"自動生成 data.yaml 失敗（不影響資料集創建）: {e}")
+
+        # 創建資料庫記錄（使用絕對路徑）
         dataset = Dataset(
             id=dataset_id,
             name=name,
             description=description,
-            path=str(dataset_path),
-            train_path=str(dataset_path / 'images' / 'train'),
-            val_path=str(dataset_path / 'images' / 'val'),
+            path=os.path.abspath(str(dataset_path)),
+            train_path=os.path.abspath(str(dataset_path / 'images' / 'train')),
+            val_path=os.path.abspath(str(dataset_path / 'images' / 'val')),
+            yaml_path=yaml_path_abs,
             total_images=stats['total_images'],
             total_labels=stats['total_labels'],
             num_classes=len(class_names),

@@ -34,9 +34,10 @@ class DatasetResponse(BaseModel):
     id: str = Field(..., description="資料集 ID")
     name: str = Field(..., description="資料集名稱")
     description: Optional[str] = Field(None, description="資料集描述")
-    path: str = Field(..., description="資料集路徑")
-    train_path: str = Field(..., description="訓練集路徑")
-    val_path: str = Field(..., description="驗證集路徑")
+    path: str = Field(..., description="資料集路徑（絕對路徑）")
+    train_path: str = Field(..., description="訓練集路徑（絕對路徑）")
+    val_path: str = Field(..., description="驗證集路徑（絕對路徑）")
+    yaml_path: Optional[str] = Field(None, description="data.yaml 檔案路徑（絕對路徑）")
     stats: DatasetStats = Field(..., description="統計資訊")
     created_at: Optional[str] = Field(None, description="創建時間")
 

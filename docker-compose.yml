@@ -47,6 +47,7 @@ services:
       - ./backend:/app
       - ./models:/app/trained_models
       - ./datasets:/app/datasets
+      - ./config:/app/config
     depends_on:
       redis:
         condition: service_healthy
@@ -63,6 +64,7 @@ services:
       - ./backend:/app
       - ./models:/app/trained_models
       - ./datasets:/app/datasets
+      - ./config:/app/config
     depends_on:
       redis:
         condition: service_healthy
