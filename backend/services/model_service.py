@@ -345,3 +345,183 @@ class ModelService:
             },
             'active_model_id': active_model.id if active_model else None
         }
+
+    def scan_model_files(self) -> List[Dict[str, Any]]:
+        """
+        掃描可用的模型檔案（.pt 檔案）
+
+        掃描以下目錄：
+        - ./models (trained_models)
+        - ./yolo_project/**/weights
+        - ./runs/**/weights
+
+        Returns:
+            List[Dict[str, Any]]: 可用的模型檔案列表
+        """
+        import glob
+
+        model_files = []
+        search_paths = [
+            './models/**/*.pt',
+            './trained_models/**/*.pt',
+            './yolo_project/**/weights/*.pt',
+            './runs/**/weights/*.pt',
+        ]
+
+        seen_paths = set()
+
+        for pattern in search_paths:
+            for file_path in glob.glob(pattern, recursive=True):
+                abs_path = os.path.abspath(file_path)
+
+                # 避免重複
+                if abs_path in seen_paths:
+                    continue
+                seen_paths.add(abs_path)
+
+                # 獲取檔案資訊
+                try:
+                    file_size = os.path.getsize(abs_path)
+                    file_size_mb = round(file_size / 1024 / 1024, 2)
+                    file_name = os.path.basename(abs_path)
+
+                    # 判斷模型類型
+                    model_type = 'unknown'
+                    if 'best.pt' in file_name:
+                        model_type = 'best'
+                    elif 'last.pt' in file_name:
+                        model_type = 'last'
+
+                    model_files.append({
+                        'file_path': abs_path,
+                        'file_name': file_name,
+                        'file_size_mb': file_size_mb,
+                        'model_type': model_type,
+                        'directory': os.path.dirname(abs_path)
+                    })
+                except Exception as e:
+                    logger.warning(f"無法讀取檔案資訊: {abs_path}, 錯誤: {e}")
+                    continue
+
+        # 按修改時間排序（最新的在前面）
+        model_files.sort(key=lambda x: os.path.getmtime(x['file_path']), reverse=True)
+
+        logger.info(f"掃描到 {len(model_files)} 個模型檔案")
+        return model_files
+
+    def inspect_model_file(self, file_path: str) -> Dict[str, Any]:
+        """
+        讀取模型檔案的詳細資訊（包含 Precision, Recall 等指標）
+
+        Args:
+            file_path: 模型檔案路徑
+
+        Returns:
+            Dict[str, Any]: 模型詳細資訊
+
+        Raises:
+            FileNotFoundError: 檔案不存在
+            Exception: 讀取失敗
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"模型檔案不存在: {file_path}")
+
+        try:
+            import torch
+
+            # 載入模型檢查點
+            checkpoint = torch.load(file_path, map_location='cpu')
+
+            # 提取基本資訊
+            file_size = os.path.getsize(file_path)
+            file_size_mb = round(file_size / 1024 / 1024, 2)
+
+            # 嘗試提取訓練指標
+            metrics = {}
+
+            # 不同版本的 YOLO 儲存格式可能不同
+            # YOLOv8/v11 通常在 checkpoint 的 'metrics' 或直接在頂層
+            if isinstance(checkpoint, dict):
+                # 嘗試從不同位置提取指標
+                if 'metrics' in checkpoint and isinstance(checkpoint['metrics'], dict):
+                    metrics_data = checkpoint['metrics']
+
+                    # 提取各種指標
+                    # mAP@0.5
+                    if 'metrics/mAP50(B)' in metrics_data:
+                        metrics['map50'] = float(metrics_data['metrics/mAP50(B)'])
+                    elif 'metrics/mAP_0.5' in metrics_data:
+                        metrics['map50'] = float(metrics_data['metrics/mAP_0.5'])
+
+                    # mAP@0.5:0.95
+                    if 'metrics/mAP50-95(B)' in metrics_data:
+                        metrics['map50_95'] = float(metrics_data['metrics/mAP50-95(B)'])
+                    elif 'metrics/mAP_0.5:0.95' in metrics_data:
+                        metrics['map50_95'] = float(metrics_data['metrics/mAP_0.5:0.95'])
+
+                    # Precision
+                    if 'metrics/precision(B)' in metrics_data:
+                        metrics['precision'] = float(metrics_data['metrics/precision(B)'])
+                    elif 'precision' in metrics_data:
+                        metrics['precision'] = float(metrics_data['precision'])
+
+                    # Recall
+                    if 'metrics/recall(B)' in metrics_data:
+                        metrics['recall'] = float(metrics_data['metrics/recall(B)'])
+                    elif 'recall' in metrics_data:
+                        metrics['recall'] = float(metrics_data['recall'])
+
+                # 檢查是否有 results.csv 檔案（在同一目錄）
+                results_csv = os.path.join(os.path.dirname(file_path), '..', 'results.csv')
+                if os.path.exists(results_csv):
+                    try:
+                        import pandas as pd
+                        df = pd.read_csv(results_csv)
+                        if len(df) > 0:
+                            last_row = df.iloc[-1]
+                            # 從 CSV 提取指標（通常是最後一行）
+                            if 'metrics/mAP50(B)' in df.columns:
+                                metrics['map50'] = float(last_row['metrics/mAP50(B)'])
+                            if 'metrics/mAP50-95(B)' in df.columns:
+                                metrics['map50_95'] = float(last_row['metrics/mAP50-95(B)'])
+                            if 'metrics/precision(B)' in df.columns:
+                                metrics['precision'] = float(last_row['metrics/precision(B)'])
+                            if 'metrics/recall(B)' in df.columns:
+                                metrics['recall'] = float(last_row['metrics/recall(B)'])
+                    except Exception as e:
+                        logger.warning(f"無法讀取 results.csv: {e}")
+
+                # 提取 YOLO 版本資訊
+                yolo_version = 'v11'  # 預設
+                if 'model' in checkpoint:
+                    model_yaml = checkpoint.get('model', {})
+                    if hasattr(model_yaml, 'yaml') and model_yaml.yaml:
+                        yaml_content = str(model_yaml.yaml)
+                        if 'yolov5' in yaml_content.lower():
+                            yolo_version = 'v5'
+                        elif 'yolov8' in yaml_content.lower():
+                            yolo_version = 'v8'
+
+            return {
+                'file_path': file_path,
+                'file_name': os.path.basename(file_path),
+                'file_size': file_size,
+                'file_size_mb': file_size_mb,
+                'yolo_version': yolo_version,
+                'metrics': metrics,
+                'has_metrics': len(metrics) > 0
+            }
+
+        except Exception as e:
+            logger.error(f"讀取模型檔案失敗: {e}", exc_info=True)
+            # 如果無法讀取指標，至少返回基本資訊
+            return {
+                'file_path': file_path,
+                'file_name': os.path.basename(file_path),
+                'file_size': os.path.getsize(file_path),
+                'file_size_mb': round(os.path.getsize(file_path) / 1024 / 1024, 2),
+                'yolo_version': 'v11',
+                'metrics': {},
+                'has_metrics': False,
+                'error': str(e)
+            }

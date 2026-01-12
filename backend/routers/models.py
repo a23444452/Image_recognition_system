@@ -279,3 +279,45 @@ async def compare_models(
         "models": comparison,
         "count": len(comparison)
     }
+
+
+@router.get("/scan-files")
+async def scan_model_files(
+    service: ModelService = Depends(get_model_service)
+):
+    """
+    掃描可用的模型檔案
+
+    Returns:
+        List[dict]: 可用的模型檔案列表
+    """
+    try:
+        files = service.scan_model_files()
+        return {"files": files, "count": len(files)}
+    except Exception as e:
+        logger.error(f"掃描模型檔案失敗: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"掃描模型檔案失敗: {str(e)}")
+
+
+@router.post("/inspect")
+async def inspect_model_file(
+    file_path: str,
+    service: ModelService = Depends(get_model_service)
+):
+    """
+    讀取模型檔案的詳細資訊（包含 Precision, Recall 等）
+
+    Args:
+        file_path: 模型檔案路徑
+
+    Returns:
+        dict: 模型詳細資訊
+    """
+    try:
+        info = service.inspect_model_file(file_path)
+        return info
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"模型檔案不存在: {file_path}")
+    except Exception as e:
+        logger.error(f"讀取模型檔案失敗: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"讀取模型檔案失敗: {str(e)}")

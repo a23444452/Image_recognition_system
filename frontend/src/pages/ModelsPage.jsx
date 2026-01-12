@@ -375,6 +375,10 @@ function CreateModelModal({ onClose, onSuccess }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showFileBrowser, setShowFileBrowser] = useState(false);
+  const [availableFiles, setAvailableFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [inspecting, setInspecting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -382,6 +386,70 @@ function CreateModelModal({ onClose, onSuccess }) {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleBrowseFiles = async () => {
+    setShowFileBrowser(true);
+    setLoadingFiles(true);
+    setError(null);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/models/scan-files');
+
+      if (!response.ok) {
+        throw new Error('掃描模型檔案失敗');
+      }
+
+      const data = await response.json();
+      setAvailableFiles(data.files || []);
+    } catch (err) {
+      console.error('Failed to scan model files:', err);
+      setError(err.message);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  const handleSelectFile = async (file) => {
+    setInspecting(true);
+    setError(null);
+
+    try {
+      // 檢查模型檔案，獲取指標
+      const response = await fetch('http://localhost:8000/api/v1/models/inspect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ file_path: file.file_path }),
+      });
+
+      if (!response.ok) {
+        throw new Error('讀取模型資訊失敗');
+      }
+
+      const modelInfo = await response.json();
+
+      // 自動填充表單
+      setFormData((prev) => ({
+        ...prev,
+        file_path: modelInfo.file_path,
+        yolo_version: modelInfo.yolo_version || prev.yolo_version,
+        map50: modelInfo.metrics.map50 || '',
+        map50_95: modelInfo.metrics.map50_95 || '',
+        precision: modelInfo.metrics.precision || '',
+        recall: modelInfo.metrics.recall || '',
+        // 自動生成模型名稱
+        name: prev.name || modelInfo.file_name.replace('.pt', ''),
+      }));
+
+      setShowFileBrowser(false);
+    } catch (err) {
+      console.error('Failed to inspect model file:', err);
+      setError(err.message);
+    } finally {
+      setInspecting(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -479,15 +547,24 @@ function CreateModelModal({ onClose, onSuccess }) {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               模型檔案路徑 *
             </label>
-            <input
-              type="text"
-              name="file_path"
-              value={formData.file_path}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="/path/to/model.pt"
-            />
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                name="file_path"
+                value={formData.file_path}
+                onChange={handleChange}
+                required
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="/path/to/model.pt"
+              />
+              <button
+                type="button"
+                onClick={handleBrowseFiles}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                瀏覽檔案
+              </button>
+            </div>
           </div>
 
           <div>
@@ -595,6 +672,80 @@ function CreateModelModal({ onClose, onSuccess }) {
             </button>
           </div>
         </form>
+
+        {/* 檔案瀏覽器 Modal */}
+        {showFileBrowser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto m-4">
+              <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+                <h3 className="text-lg font-semibold text-gray-800">選擇模型檔案</h3>
+                <button
+                  onClick={() => setShowFileBrowser(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-4">
+                {loadingFiles && (
+                  <div className="flex justify-center items-center py-10">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-blue-600"></div>
+                  </div>
+                )}
+
+                {!loadingFiles && availableFiles.length === 0 && (
+                  <div className="text-center py-10">
+                    <p className="text-gray-600">找不到可用的模型檔案</p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      請確認訓練完成並且模型檔案存在於正確的目錄
+                    </p>
+                  </div>
+                )}
+
+                {!loadingFiles && availableFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {availableFiles.map((file, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSelectFile(file)}
+                        disabled={inspecting}
+                        className="w-full text-left p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <p className="font-medium text-gray-800">{file.file_name}</p>
+                              {file.model_type === 'best' && (
+                                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                                  最佳
+                                </span>
+                              )}
+                              {file.model_type === 'last' && (
+                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                  最後
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">
+                              {file.directory}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              大小: {file.file_size_mb} MB
+                            </p>
+                          </div>
+                          <div className="text-blue-600">
+                            {inspecting ? '讀取中...' : '選擇'}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
