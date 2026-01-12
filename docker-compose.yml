@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Redis - 任務隊列
   redis:
