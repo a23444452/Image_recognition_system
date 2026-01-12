@@ -131,39 +131,22 @@ export default function TrainingForm({ onSubmit, onCancel }) {
     }
 
     if (currentStep === 3) {
-      console.log('🔍 Step 3 驗證:', {
-        dataset_id: formData.dataset_id,
-        data_yaml: formData.data_yaml,
-        data_yaml_length: formData.data_yaml?.length,
-        data_yaml_trimmed: formData.data_yaml?.trim()
-      });
-
       if (!formData.dataset_id.trim()) {
         newErrors.dataset_id = '請選擇資料集';
-        console.log('❌ dataset_id 驗證失敗');
       }
       if (!formData.data_yaml.trim()) {
         newErrors.data_yaml = 'Data YAML 路徑不可為空';
-        console.log('❌ data_yaml 驗證失敗');
       }
       // class_names 為可選欄位，因為訓練主要依賴 data.yaml
     }
 
-    console.log('驗證結果:', { currentStep, newErrors, hasErrors: Object.keys(newErrors).length > 0 });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = () => {
-    console.log('🔘 點擊「下一步」按鈕，當前 step:', step);
-    const isValid = validateStep(step);
-    console.log('驗證是否通過:', isValid);
-    if (isValid) {
-      const nextStep = Math.min(step + 1, 4);
-      console.log('✅ 驗證通過，跳轉到 step:', nextStep);
-      setStep(nextStep);
-    } else {
-      console.log('❌ 驗證失敗，停留在 step:', step);
+    if (validateStep(step)) {
+      setStep(prev => Math.min(prev + 1, 4));
     }
   };
 
