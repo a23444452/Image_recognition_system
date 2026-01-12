@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 /**
  * 訓練監控頁面
- * 即時顯示訓練進度與指標
+ * 使用輪詢 (Polling) 即時顯示訓練進度與指標
  */
 export default function TrainingMonitor({ taskId, onClose }) {
   const [status, setStatus] = useState('connecting');
@@ -17,9 +17,10 @@ export default function TrainingMonitor({ taskId, onClose }) {
   const [history, setHistory] = useState([]);
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  const wsRef = useRef(null);
   const logsEndRef = useRef(null);
+  const lastEpochRef = useRef(0);
 
   // 自動滾動到日誌底部
   const scrollToBottom = () => {
@@ -30,79 +31,23 @@ export default function TrainingMonitor({ taskId, onClose }) {
     scrollToBottom();
   }, [logs]);
 
-  // WebSocket 連線
-  useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/training/${taskId}`;
-
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setStatus('connected');
-      addLog('✅ WebSocket 連線成功');
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-
-        switch (message.type) {
-          case 'connected':
-            addLog(message.message);
-            break;
-
-          case 'progress':
-            handleProgressUpdate(message.data);
-            break;
-
-          case 'finished':
-            handleTrainingFinished(message.data);
-            break;
-
-          case 'error':
-            setError(message.message);
-            addLog(`❌ 錯誤: ${message.message}`);
-            break;
-
-          default:
-            console.log('Unknown message type:', message.type);
-        }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setError('WebSocket 連線錯誤');
-      setStatus('error');
-    };
-
-    ws.onclose = () => {
-      setStatus('disconnected');
-      addLog('⚠️ WebSocket 連線已關閉');
-    };
-
-    return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
-  }, [taskId]);
-
   const handleProgressUpdate = (data) => {
+    const now = Date.now();
+    setLastUpdate(now);
+
     setStatus(data.status);
-    setProgress(data.progress);
-    setCurrentEpoch(data.current_epoch);
-    setTotalEpochs(data.total_epochs);
+    setProgress(data.progress || 0);
+    setCurrentEpoch(data.current_epoch || 0);
+    setTotalEpochs(data.total_epochs || 0);
     setMetrics({
       loss: data.current_loss,
       map: data.current_map,
     });
 
-    // 更新歷史數據
-    if (data.current_epoch > 0) {
+    // 更新歷史數據（只在 epoch 變化時更新）
+    if (data.current_epoch > 0 && data.current_epoch !== lastEpochRef.current) {
+      lastEpochRef.current = data.current_epoch;
+
       setHistory((prev) => {
         const newData = {
           epoch: data.current_epoch,
@@ -132,11 +77,15 @@ export default function TrainingMonitor({ taskId, onClose }) {
 
     if (data.status === 'completed') {
       addLog('🎉 訓練完成！');
-      addLog(`📁 模型路徑: ${data.model_path}`);
-      addLog(`📁 結果目錄: ${data.save_dir}`);
+      if (data.model_path) {
+        addLog(`📁 模型路徑: ${data.model_path}`);
+      }
+      if (data.save_dir) {
+        addLog(`📁 結果目錄: ${data.save_dir}`);
+      }
     } else if (data.status === 'failed') {
       setError(data.error_message);
-      addLog(`❌ 訓練失敗: ${data.error_message}`);
+      addLog(`❌ 訓練失敗: ${data.error_message || '未知錯誤'}`);
     } else if (data.status === 'stopped') {
       addLog('⏸️ 訓練已停止');
     }
@@ -146,6 +95,65 @@ export default function TrainingMonitor({ taskId, onClose }) {
     const timestamp = new Date().toLocaleTimeString('zh-TW');
     setLogs((prev) => [...prev, { time: timestamp, message }]);
   };
+
+  // 輪詢訓練進度
+  useEffect(() => {
+    addLog('🔄 開始監控訓練進度...');
+    setStatus('connected');
+
+    let isActive = true;
+
+    const pollProgress = async () => {
+      if (!isActive) return;
+
+      try {
+        const response = await fetch(`http://localhost:8000/api/v1/training/${taskId}`);
+
+        if (!response.ok) {
+          throw new Error(`API 錯誤: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // 更新狀態
+        handleProgressUpdate({
+          status: data.status,
+          progress: data.progress || 0,
+          current_epoch: data.current_epoch || 0,
+          total_epochs: data.total_epochs || 0,
+          current_loss: data.config?.current_loss,
+          current_map: data.best_map
+        });
+
+        // 如果任務已完成或失敗，停止輪詢
+        if (['completed', 'failed', 'stopped'].includes(data.status)) {
+          handleTrainingFinished({
+            status: data.status,
+            model_path: data.model_path,
+            save_dir: data.save_dir,
+            error_message: data.error_message
+          });
+          isActive = false;
+        }
+      } catch (err) {
+        console.error('輪詢錯誤:', err);
+        if (isActive) {
+          setError(`取得訓練狀態失敗: ${err.message}`);
+        }
+      }
+    };
+
+    // 立即執行一次
+    pollProgress();
+
+    // 每秒輪詢一次
+    const intervalId = setInterval(pollProgress, 1000);
+
+    return () => {
+      isActive = false;
+      clearInterval(intervalId);
+    };
+  }, [taskId]);
 
   const handleStop = async () => {
     if (!confirm('確定要停止訓練嗎？')) {
@@ -221,6 +229,9 @@ export default function TrainingMonitor({ taskId, onClose }) {
             <div className={`w-3 h-3 rounded-full ${getStatusColor()} animate-pulse`} />
             <span className="text-sm font-medium text-gray-700">{getStatusText()}</span>
           </div>
+          <div className="text-xs text-gray-500">
+            更新: {new Date(lastUpdate).toLocaleTimeString('zh-TW')}
+          </div>
           {(status === 'pending' || status === 'running') && (
             <button
               onClick={handleStop}
@@ -260,7 +271,7 @@ export default function TrainingMonitor({ taskId, onClose }) {
           <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
             <div
               className="bg-blue-600 h-4 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
         </div>
@@ -270,14 +281,14 @@ export default function TrainingMonitor({ taskId, onClose }) {
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
             <p className="text-sm text-gray-600 mb-1">當前 Loss</p>
             <p className="text-2xl font-bold text-blue-700">
-              {metrics.loss !== null ? metrics.loss.toFixed(4) : 'N/A'}
+              {metrics.loss !== null && metrics.loss !== undefined ? metrics.loss.toFixed(4) : 'N/A'}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">當前 mAP</p>
+            <p className="text-sm text-gray-600 mb-1">最佳 mAP</p>
             <p className="text-2xl font-bold text-green-700">
-              {metrics.map !== null ? metrics.map.toFixed(4) : 'N/A'}
+              {metrics.map !== null && metrics.map !== undefined ? metrics.map.toFixed(4) : 'N/A'}
             </p>
           </div>
         </div>
